@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer</title>
+    
+    <!-- Local Libraries -->
+    <script src="js/marked.min.js"></script>
+    <script src="js/mermaid.min.js"></script>
+    <link rel="stylesheet" href="css/github.min.css">
+    <script src="js/highlight.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #eaeef2;
+            --text-primary: #24292f;
+            --text-secondary: #57606a;
+            --border-color: #d0d7de;
+            --accent-color: #0969da;
+            --accent-hover: #0550ae;
+            --nav-width: 280px;
+            --editor-width: 50%;
+        }
+        
+        .dark {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --accent-color: #58a6ff;
+            --accent-hover: #79c0ff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            height: 56px;
+        }
+        
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-title svg {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--text-secondary);
+        }
+        
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Main Container */
+        .container {
+            display: flex;
+            height: calc(100vh - 56px);
+        }
+        
+        /* Main Content Area (Editor + Preview) */
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor-panel {
+            width: var(--editor-width);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+        
+        .panel-header {
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .editor-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: none;
+            outline: none;
+            resize: none;
+        }
+        
+        .editor-textarea::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        /* Preview Panel */
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .preview-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+        }
+        
+        /* Navigation Panel - Right Side */
+        .nav-panel {
+            width: var(--nav-width);
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s, transform 0.3s;
+            overflow: hidden;
+        }
+        
+        .nav-panel.collapsed {
+            width: 0;
+            border-left: none;
+        }
+        
+        .nav-header {
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 13px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .nav-item.active {
+            color: var(--accent-color);
+            background: var(--bg-tertiary);
+        }
+        
+        .nav-item.h1 { padding-left: 16px; font-weight: 600; }
+        .nav-item.h2 { padding-left: 28px; font-weight: 500; }
+        .nav-item.h3 { padding-left: 40px; }
+        .nav-item.h4 { padding-left: 52px; font-size: 12px; }
+        .nav-item.h5 { padding-left: 64px; font-size: 12px; }
+        .nav-item.h6 { padding-left: 76px; font-size: 12px; }
+        
+        .nav-empty {
+            padding: 20px 16px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        /* Markdown Styles */
+        .markdown-body {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .markdown-body h1, .markdown-body h2, .markdown-body h3,
+        .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+            color: var(--text-primary);
+        }
+        
+        .markdown-body h1 { font-size: 2em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+        .markdown-body h2 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+        .markdown-body h3 { font-size: 1.25em; }
+        .markdown-body h4 { font-size: 1em; }
+        .markdown-body h5 { font-size: 0.875em; }
+        .markdown-body h6 { font-size: 0.85em; color: var(--text-secondary); }
+        
+        .markdown-body p {
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        
+        .markdown-body a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+        
+        .markdown-body code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+        }
+        
+        .markdown-body pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        
+        .markdown-body pre code {
+            padding: 0;
+            background: transparent;
+        }
+        
+        .markdown-body blockquote {
+            padding: 0 1em;
+            color: var(--text-secondary);
+            border-left: 0.25em solid var(--border-color);
+            margin-bottom: 16px;
+        }
+        
+        .markdown-body ul, .markdown-body ol {
+            padding-left: 2em;
+            margin-bottom: 16px;
+        }
+        
+        .markdown-body li {
+            margin-bottom: 4px;
+        }
+        
+        .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        
+        .markdown-body table th, .markdown-body table td {
+            padding: 8px 13px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .markdown-body table th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+        }
+        
+        .markdown-body table tr:nth-child(2n) {
+            background: var(--bg-secondary);
+        }
+        
+        .markdown-body img {
+            max-width: 100%;
+            border-radius: 6px;
+        }
+        
+        .markdown-body hr {
+            height: 0.25em;
+            padding: 0;
+            margin: 24px 0;
+            background: var(--border-color);
+            border: 0;
+        }
+        
+        /* Mermaid Styles */
+        .mermaid {
+            text-align: center;
+            margin: 16px 0;
+        }
+        
+        /* File Drop Zone */
+        .drop-zone {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        
+        .drop-zone.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .drop-zone-content {
+            padding: 40px 60px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            border: 2px dashed var(--accent-color);
+            text-align: center;
+        }
+        
+        .drop-zone-content svg {
+            width: 48px;
+            height: 48px;
+            color: var(--accent-color);
+            margin-bottom: 16px;
+        }
+        
+        /* Toggle Buttons */
+        .toggle-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .toggle-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+            max-width: 300px;
+        }
+        
+        /* Hidden file input */
+        .file-input {
+            display: none;
+        }
+        
+        /* Loading Animation */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-panel {
+                position: absolute;
+                right: 0;
+                top: 56px;
+                height: calc(100vh - 56px);
+                z-index: 100;
+            }
+            
+            .nav-panel.collapsed {
+                transform: translateX(100%);
+                width: var(--nav-width);
+            }
+            
+            .editor-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Markdown Viewer
+        </div>
+        <div class="header-actions">
+            <button class="btn" id="openFileBtn" data-i18n="title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span data-i18n="openFile">打开文件</span>
+            </button>
+            <button class="btn" id="toggleNavBtn" data-i18n="title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+                <span data-i18n="toc">导航</span>
+            </button>
+            <button class="btn" id="toggleLangBtn" data-i18n="title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                <span id="langLabel">EN</span>
+            </button>
+            <button class="btn" id="toggleThemeBtn" data-i18n="title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="themeIcon">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+                <span data-i18n="theme">主题</span>
+            </button>
+        </div>
+    </header>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Main Content (Editor + Preview) -->
+        <main class="main-content">
+            <!-- Editor Panel -->
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <span data-i18n="editor">编辑器</span>
+                    <span id="charCount"><span data-i18n="chars">0 字符</span></span>
+                </div>
+                <div class="editor-area">
+                    <textarea class="editor-textarea" id="editor"></textarea>
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <div data-i18n="dropFile">释放以打开文件</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Panel -->
+            <div class="preview-panel">
+                <div class="panel-header">
+                    <span data-i18n="preview">预览</span>
+                </div>
+                <div class="preview-content" id="preview">
+                    <div class="markdown-body empty-state" id="emptyState">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <h3 data-i18n="startEdit">开始编辑</h3>
+                        <p data-i18n="startEditDesc">在左侧编辑器中输入 Markdown 内容，或拖放 .md 文件到此处</p>
+                    </div>
+                    <div class="markdown-body" id="markdownBody" style="display: none;"></div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Navigation Panel - Right Side -->
+        <aside class="nav-panel" id="navPanel">
+            <div class="nav-header">
+                <span data-i18n="toc">目录</span>
+                <button class="toggle-btn" id="collapseNavBtn" data-i18n="title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="nav-content" id="navContent">
+                <div class="nav-empty" data-i18n="noToc">暂无目录</div>
+            </div>
+        </aside>
+    </div>
+    
+    <!-- Hidden File Input -->
+    <input type="file" class="file-input" id="fileInput" accept=".md,.markdown,.txt">
+    
+    <script>
+        // Internationalization
+        const i18n = {
+            zh: {
+                openFile: '打开文件',
+                toc: '导航',
+                theme: '主题',
+                editor: '编辑器',
+                preview: '预览',
+                chars: '字符',
+                dropFile: '释放以打开文件',
+                startEdit: '开始编辑',
+                startEditDesc: '在左侧编辑器中输入 Markdown 内容，或拖放 .md 文件到此处',
+                noToc: '暂无目录',
+                placeholder: '在此输入 Markdown 内容...\n\n支持功能：\n- 标准 Markdown 语法\n- Mermaid 图表 (```mermaid)\n- 代码高亮\n\n也可以拖放 .md 文件到此处',
+                mermaidError: 'Mermaid 图表渲染错误:\n'
+            },
+            en: {
+                openFile: 'Open File',
+                toc: 'TOC',
+                theme: 'Theme',
+                editor: 'Editor',
+                preview: 'Preview',
+                chars: 'chars',
+                dropFile: 'Drop to open file',
+                startEdit: 'Start Editing',
+                startEditDesc: 'Enter Markdown content in the left editor, or drag & drop a .md file here',
+                noToc: 'No Table of Contents',
+                placeholder: 'Enter Markdown content here...\n\nFeatures:\n- Standard Markdown syntax\n- Mermaid diagrams (```mermaid)\n- Code highlighting\n\nYou can also drag & drop a .md file here',
+                mermaidError: 'Mermaid render error:\n'
+            }
+        };
+        
+        let currentLang = 'zh';
+        
+        function updateLanguage() {
+            const lang = i18n[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (key === 'title') {
+                    const span = el.querySelector('span[data-i18n]');
+                    if (span) {
+                        const spanKey = span.getAttribute('data-i18n');
+                        if (spanKey && lang[spanKey]) span.textContent = lang[spanKey];
+                    }
+                } else if (lang[key]) {
+                    el.textContent = lang[key];
+                }
+            });
+            
+            // Update placeholder
+            editor.placeholder = lang.placeholder;
+            
+            // Update language label
+            document.getElementById('langLabel').textContent = currentLang === 'zh' ? 'EN' : '中文';
+            
+            // Update HTML lang attribute
+            document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
+            
+            // Update char count
+            updateCharCount();
+            
+            // Update nav empty state
+            const navEmpty = navContent.querySelector('.nav-empty');
+            if (navEmpty) navEmpty.textContent = lang.noToc;
+        }
+        
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            updateLanguage();
+        }
+        
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+        });
+        
+        // DOM Elements
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const markdownBody = document.getElementById('markdownBody');
+        const emptyState = document.getElementById('emptyState');
+        const navPanel = document.getElementById('navPanel');
+        const navContent = document.getElementById('navContent');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const charCountEl = document.getElementById('charCount');
+        
+        // State
+        let isDark = false;
+        let isNavCollapsed = false;
+        let debounceTimer = null;
+        
+        // Update Character Count
+        function updateCharCount() {
+            const lang = i18n[currentLang];
+            charCountEl.innerHTML = `${editor.value.length} ${lang.chars}`;
+        }
+        
+        // Toggle Theme
+        function toggleTheme() {
+            isDark = !isDark;
+            document.body.classList.toggle('dark', isDark);
+            
+            // Update Mermaid theme
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: isDark ? 'dark' : 'default',
+                securityLevel: 'loose',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+            });
+            
+            // Update theme icon
+            const themeIcon = document.getElementById('themeIcon');
+            if (isDark) {
+                themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            } else {
+                themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            }
+            
+            // Re-render preview
+            renderMarkdown();
+        }
+        
+        // Toggle Navigation
+        function toggleNav() {
+            isNavCollapsed = !isNavCollapsed;
+            navPanel.classList.toggle('collapsed', isNavCollapsed);
+        }
+        
+        // Extract Headings for Navigation
+        function extractHeadings(html) {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            const headings = temp.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            
+            if (headings.length === 0) {
+                navContent.innerHTML = `<div class="nav-empty">${i18n[currentLang].noToc}</div>`;
+                return;
+            }
+            
+            navContent.innerHTML = '';
+            headings.forEach((heading, index) => {
+                const id = `heading-${index}`;
+                heading.id = id;
+                
+                const item = document.createElement('div');
+                item.className = `nav-item ${heading.tagName.toLowerCase()}`;
+                item.textContent = heading.textContent;
+                item.addEventListener('click', () => {
+                    const target = document.getElementById(id);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+                navContent.appendChild(item);
+            });
+            
+            return temp.innerHTML;
+        }
+        
+        // Render Markdown
+        async function renderMarkdown() {
+            const text = editor.value;
+            
+            // Update character count
+            updateCharCount();
+            
+            if (!text.trim()) {
+                emptyState.style.display = 'flex';
+                markdownBody.style.display = 'none';
+                navContent.innerHTML = `<div class="nav-empty">${i18n[currentLang].noToc}</div>`;
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            markdownBody.style.display = 'block';
+            
+            // Parse Markdown
+            const rawHtml = marked.parse(text);
+            
+            // Extract headings and update navigation
+            const htmlWithIds = extractHeadings(rawHtml);
+            markdownBody.innerHTML = htmlWithIds || rawHtml;
+            
+            // Process Mermaid diagrams
+            const mermaidBlocks = markdownBody.querySelectorAll('pre code.language-mermaid');
+            
+            for (let i = 0; i < mermaidBlocks.length; i++) {
+                const code = mermaidBlocks[i];
+                const pre = code.parentElement;
+                const graphDefinition = code.textContent.trim();
+                
+                try {
+                    const id = `mermaid-${Date.now()}-${i}`;
+                    const { svg } = await mermaid.render(id, graphDefinition);
+                    
+                    const div = document.createElement('div');
+                    div.className = 'mermaid';
+                    div.innerHTML = svg;
+                    pre.replaceWith(div);
+                } catch (error) {
+                    console.error('Mermaid render error:', error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'mermaid';
+                    errorDiv.style.color = '#d73a49';
+                    errorDiv.innerHTML = `<pre>${i18n[currentLang].mermaidError}${error.message}</pre>`;
+                    pre.replaceWith(errorDiv);
+                }
+            }
+            
+            // Apply syntax highlighting
+            markdownBody.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        }
+        
+        // Debounced Render
+        function debouncedRender() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(renderMarkdown, 300);
+        }
+        
+        // Open File
+        function openFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                editor.value = e.target.result;
+                renderMarkdown();
+            };
+            reader.readAsText(file);
+        }
+        
+        // Event Listeners
+        editor.addEventListener('input', debouncedRender);
+        
+        document.getElementById('toggleThemeBtn').addEventListener('click', toggleTheme);
+        document.getElementById('toggleNavBtn').addEventListener('click', toggleNav);
+        document.getElementById('collapseNavBtn').addEventListener('click', toggleNav);
+        document.getElementById('toggleLangBtn').addEventListener('click', toggleLanguage);
+        
+        document.getElementById('openFileBtn').addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                openFile(file);
+            }
+        });
+        
+        // Drag and Drop
+        const editorArea = document.querySelector('.editor-area');
+        
+        editorArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('active');
+        });
+        
+        editorArea.addEventListener('dragleave', (e) => {
+            if (!editorArea.contains(e.relatedTarget)) {
+                dropZone.classList.remove('active');
+            }
+        });
+        
+        editorArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt'))) {
+                openFile(file);
+            }
+        });
+        
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + O: Open file
+            if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                e.preventDefault();
+                fileInput.click();
+            }
+            // Ctrl/Cmd + B: Toggle navigation
+            if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+                e.preventDefault();
+                toggleNav();
+            }
+        });
+        
+        // Initial setup
+        updateLanguage();
+        renderMarkdown();
+    </script>
+</body>
+</html>
