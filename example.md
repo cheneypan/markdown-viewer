@@ -1,19 +1,19 @@
-# Markdown Viewer 示例文档
+# Markdown Viewer Example Document
 
-这是一个用于测试 Markdown Viewer 功能的示例文档。
+This is a sample document for testing Markdown Viewer features.
 
-## 功能特性
+## Features
 
-### 1. Markdown 基础语法
+### 1. Basic Markdown Syntax
 
-支持所有标准 Markdown 语法：
+Supports all standard Markdown syntax:
 
-- **粗体文本**
-- *斜体文本*
-- `行内代码`
-- ~~删除线~~
+- **Bold text**
+- *Italic text*
+- `Inline code`
+- ~~Strikethrough~~
 
-### 2. 代码块
+### 2. Code Blocks
 
 ```javascript
 function hello() {
@@ -21,68 +21,68 @@ function hello() {
 }
 ```
 
-### 3. 表格
+### 3. Tables
 
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| Markdown 解析 | ✅ | 支持 |
-| Mermaid 图表 | ✅ | 支持 |
-| 代码高亮 | ✅ | 支持 |
-| 目录导航 | ✅ | 支持 |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Markdown Parsing | ✅ | Supported |
+| Mermaid Diagrams | ✅ | Supported |
+| Code Highlighting | ✅ | Supported |
+| Table of Contents | ✅ | Supported |
 
-## Mermaid 图表示例
+## Mermaid Diagram Examples
 
-### 流程图
+### Flowchart
 
 ```mermaid
 graph TD
-    A[开始] --> B{是否登录?}
-    B -->|是| C[显示主页]
-    B -->|否| D[跳转登录页]
-    D --> E[用户登录]
+    A[Start] --> B{Is Logged In?}
+    B -->|Yes| C[Show Homepage]
+    B -->|No| D[Redirect to Login]
+    D --> E[User Login]
     E --> C
-    C --> F[结束]
+    C --> F[End]
 ```
 
-### 时序图
+### Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-    participant 用户
-    participant 浏览器
-    participant 服务器
-    用户->>浏览器: 打开网页
-    浏览器->>服务器: 发送请求
-    服务器-->>浏览器: 返回数据
-    浏览器-->>用户: 显示内容
+    participant User
+    participant Browser
+    participant Server
+    User->>Browser: Open Webpage
+    Browser->>Server: Send Request
+    Server-->>Browser: Return Data
+    Browser-->>User: Display Content
 ```
 
-### 饼图
+### Pie Chart
 
 ```mermaid
 pie showData
-    title 功能占比
-    "Markdown解析" : 40
-    "Mermaid渲染" : 30
-    "代码高亮" : 20
-    "其他功能" : 10
+    title Feature Distribution
+    "Markdown Parsing" : 40
+    "Mermaid Rendering" : 30
+    "Code Highlighting" : 20
+    "Other Features" : 10
 ```
 
-## 引用块
+## Blockquote
 
-> Markdown 是一种轻量级标记语言，它允许人们使用易读易写的纯文本格式编写文档。
+> Markdown is a lightweight markup language that allows people to write documents using an easy-to-read and easy-to-write plain text format.
 > 
 > — John Gruber
 
-## 任务列表
+## Task List
 
-- [x] 支持 Markdown 解析
-- [x] 支持 Mermaid 图表
-- [x] 支持代码高亮
-- [x] 支持目录导航
-- [x] 支持深色模式
-- [ ] 更多功能开发中...
+- [x] Support Markdown parsing
+- [x] Support Mermaid diagrams
+- [x] Support code highlighting
+- [x] Support table of contents
+- [x] Support dark mode
+- [ ] More features in development...
 
 ---
 
-感谢使用 Markdown Viewer！
+Thanks for using Markdown Viewer!
