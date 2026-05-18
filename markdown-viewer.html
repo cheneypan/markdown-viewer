@@ -51,8 +51,13 @@
             transition: background 0.3s, color 0.3s;
         }
         
-        /* Header */
+        /* Header - Fixed */
         .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -120,6 +125,7 @@
         /* Main Container */
         .container {
             display: flex;
+            margin-top: 56px;
             height: calc(100vh - 56px);
         }
         
